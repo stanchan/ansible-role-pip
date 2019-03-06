@@ -34,14 +34,17 @@ except ImportError:
 URL_PATTERN = 'https://pypi.python.org/pypi/{package}/json'
 
 class LookupModule(LookupBase):
-    def run(self, terms, variables=None, **kwargs):
+    def run(self, terms, variables=None, req_timeout=1, **kwargs):
         if not HAS_REQUESTS:
             raise AnsibleError('Requests library is required for pypi_version lookup, try `pip install requests`.')
 
         ret = []
         for term in terms:
             term = str(term)
-            req = requests.get(URL_PATTERN.format(package=term))
+            try:
+                req = requests.get(URL_PATTERN.format(package=term), timeout=req_timeout)
+            except requests.exceptions.RequestException as e:
+                raise AnsibleError("failed to acquire pypi metadata in lookup: {}".format(term))
             version = parse('0')
             if req.status_code == requests.codes.ok:
                 j = json.loads(req.text.encode('utf-8'))
