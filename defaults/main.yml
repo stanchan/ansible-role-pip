@@ -1,7 +1,7 @@
 ---
 # defaults file for pip
 skip_dependencies: no
-python_bin: "{{ ansible_python_interpreter | default( ansible_python.executable | default('python') ) }}"
+python_bin: "{{ ansible_python_interpreter | d( ansible_python.executable | d('python') ) }}"
 
 pip_version: ""
 pip_bin: pip
@@ -12,7 +12,7 @@ pip_version_urls:
   3.2: https://bootstrap.pypa.io/3.2/get-pip.py
   3.3: https://bootstrap.pypa.io/3.3/get-pip.py
 pip_download_url_default: https://bootstrap.pypa.io/get-pip.py
-pip_download_url: "{{ pip_version_urls[ansible_python.version_info[:3] | join('.')] | default(pip_download_url_default) }}"
+pip_download_url: "{{ pip_version_urls[ansible_python.version_info[:3] | join('.')] | d(pip_download_url_default) }}"
 
 pip_packages:
   - jmespath
