@@ -34,7 +34,6 @@
 
   - name: Install pip packages
     pip:
-      name: "{{ item }}"
+      name: "{{ pip_packages }}"
       state: latest
-    loop: "{{ pip_packages }}"
   when: not skip_dependencies
