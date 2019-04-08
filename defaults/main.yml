@@ -16,4 +16,3 @@ pip_download_url: "{{ pip_version_urls[ansible_python.version_info[:3] | join('.
 
 pip_packages:
   - jmespath
-  - kazoo
