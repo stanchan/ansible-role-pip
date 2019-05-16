@@ -15,4 +15,5 @@ pip_download_url_default: https://bootstrap.pypa.io/get-pip.py
 pip_download_url: "{{ pip_version_urls[ansible_python.version_info[:3] | join('.')] | d(pip_download_url_default) }}"
 
 pip_packages:
-  - jmespath
+  - name: jmespath
+    version: latest

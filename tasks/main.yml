@@ -34,6 +34,12 @@
 
   - name: Install pip packages
     pip:
-      name: "{{ pip_packages }}"
-      state: latest
+      name: "{{ item.name }}"
+      version: "{{ item.version | d(omit) }}"
+      requirements: "{{ item.requirements | d(omit) }}"
+      virtualenv: "{{ item.virtualenv | d(omit) }}"
+      virtualenv_python: "{{ item.virtualenv_python | d(omit) }}"
+      virtualenv_command: "{{ item.virtualenv_command | d(omit) }}"
+      virtualenv_site_packages: "{{ item.virtualenv_site_packages | d(omit) }}"
+    loop: "{{ pip_packages }}"
   when: not skip_dependencies
