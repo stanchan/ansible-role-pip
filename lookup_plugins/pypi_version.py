@@ -5,12 +5,10 @@ __metaclass__ = type
 DOCUMENTATION = """
     lookup: pypi_version
     author: Stan Chan <stanchan@gmail.com>
-    version_added: "2.4"
+    version_added: "2.8"
     short_description: get lastest version of a python package from pypi
     description:
         - This lookup returns the latest version of a python package from pypi.
-    requirements:
-      - requests library installed
     options:
       _terms:
         description: name of python package
@@ -19,12 +17,9 @@ DOCUMENTATION = """
 from ansible.errors import AnsibleError
 from ansible.plugins.lookup import LookupBase
 
+import urllib.request, urllib.error
+import socket
 import json
-try:
-    import requests
-    HAS_REQUESTS = True
-except ImportError as e:
-    HAS_REQUESTS = False
 
 try:
     from packaging.version import parse
@@ -34,21 +29,26 @@ except ImportError:
 URL_PATTERN = 'https://pypi.python.org/pypi/{package}/json'
 
 class LookupModule(LookupBase):
-    def run(self, terms, variables=None, req_timeout=1, **kwargs):
-        if not HAS_REQUESTS:
-            raise AnsibleError('Requests library is required for pypi_version lookup, try `pip install requests`.')
-
+    def run(self, terms, variables=None, req_timeout=3, **kwargs):
         ret = []
         for term in terms:
             term = str(term)
+            url = URL_PATTERN.format(package=term)
             try:
-                req = requests.get(URL_PATTERN.format(package=term), timeout=req_timeout)
-            except requests.exceptions.RequestException as e:
-                raise AnsibleError("failed to acquire pypi metadata in lookup: {}".format(term))
+                resp = urllib.request.urlopen(url, timeout=req_timeout).read().decode('utf-8')
+            except urllib.error.HTTPError as e:
+                raise AnsibleError("failed to acquire pypi metadata in lookup: {} (HTTPError: {}, URL: {})".format(term, e, url))
+            except urllib.error.URLError as e:
+                if isinstance(e.reason, socket.timeout):
+                    raise AnsibleError("failed to acquire pypi metadata in lookup: {} (Socket Timeout, URL: {})".format(term, url))
+                else:
+                    raise AnsibleError("failed to acquire pypi metadata in lookup: {} (Error: {}, URL: {})".format(term, e, url))
             version = parse('0')
-            if req.status_code == requests.codes.ok:
-                j = json.loads(req.text.encode('utf-8'))
-                releases = j.get('releases', [])
-                version = max([parse(release) for release in releases if not parse(release).is_prerelease])
-                ret.append(version)
+            try:
+                j = json.loads(resp)
+            except (ValueError, TypeError) as e:
+                raise AnsibleError("failed to acquire pypi metadata in lookup: {} (Error: {}, URL: {})".format(term, e, url))
+            releases = j.get('releases', [])
+            version = max([parse(release) for release in releases if not parse(release).is_prerelease])
+            ret.append(version)
         return ret

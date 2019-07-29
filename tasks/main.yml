@@ -1,16 +1,36 @@
 ---
 # tasks file for pip
-
 - block:
-  - name: check pip version
-    shell: "{{ pip_bin }} --version"
-    register: pip_check
+  - name: check python version
+    shell: "{{ python_bin }} --version 2>&1"
+    register: python_check
     ignore_errors: yes
     changed_when: no
 
-  - name: check pip latest
+  - name: get python version
     set_fact:
-      pip_latest: "{{ lookup('pypi_version', 'pip') }}"
+      python_version: "{{ python_check.stdout.split(' ')[1] }}"
+
+  - name: set pip path
+    set_fact:
+      pip_bin_path: "{{ pip_bin }}"
+    when: python_version is version('2.0.0', '>=') and python_version is version('3', '<')
+
+  - name: set pip3 path
+    set_fact:
+      pip_bin_path: "{{ pip3_bin }}"
+    when: python_version is version('3.0.0', '>=')
+
+  - name: check pip exists
+    stat:
+      path: "{{ pip_bin_path }}"
+    register: pip_bin_check
+
+  - name: check pip version
+    shell: "{{ pip_bin_path }} --version"
+    register: pip_version_check
+    ignore_errors: yes
+    changed_when: no
 
   - block:
     - name: download get-pip.py
@@ -25,7 +45,11 @@
       file:
         state: absent
         path: "{{ pip_install_path }}/get-pip.py"
-    when: pip_check.rc != 0
+    when: not pip_bin_check.stat.exists or pip_version_check.rc != 0
+
+  - name: check pip latest
+    set_fact:
+      pip_latest: "{{ lookup('pypi_version', 'pip') }}"
 
   - name: update pip package
     pip:
