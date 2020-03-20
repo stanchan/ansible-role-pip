@@ -40,11 +40,6 @@
 
     - name: install pip
       command: "{{ python_bin }} {{ pip_install_path }}/get-pip.py{{ ' --proxy={}'.format(pip_proxy_url) if pip_proxy_url else '' }}"
-
-    - name: remove get-pip.py
-      file:
-        state: absent
-        path: "{{ pip_install_path }}/get-pip.py"
     when: not pip_bin_check.stat.exists or pip_version_check.rc != 0
 
   - name: check pip latest
